@@ -1,8 +1,13 @@
+# get_llm_answer.py
+
 from openai import OpenAI
 import anthropic
 from together import Together
 import json
 import re
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # Initialize clients
 anthropic_client = anthropic.Anthropic()
@@ -10,7 +15,6 @@ openai_client = OpenAI()
 together_client = Together()
 
 SYSTEM_PROMPT = """Please act as an impartial judge and evaluate based on the user's instruction. Your output format should strictly adhere to JSON as follows: {"feedback": "<write feedback>", "result": <numerical score>}. Ensure the output is valid JSON, without additional formatting or explanations."""
-
 
 def get_openai_response(model_name, prompt):
     """Get response from OpenAI API"""

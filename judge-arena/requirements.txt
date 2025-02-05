@@ -1,6 +1,0 @@
-pymongo
-gradio
-python-dotenv
-openai
-anthropic
-together

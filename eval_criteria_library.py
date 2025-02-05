@@ -1,6 +1,20 @@
-# Example evaluation metrics data
-
 EXAMPLE_METRICS = {
+"Custom":  {
+    "prompt":
+    """You are assessing a chat bot response to a user's input based on [INSERT CRITERIA]
+Score:
+A score of 1 means that the response's answer meets all of the evaluation criteria.
+A score of 0 means that the response's answer does not meet all of the evaluation criteria.
+
+Here is the data:
+[BEGIN DATA]
+***
+[User Query]: {{input}}
+***
+[Response]: {{response}}
+***
+[END DATA]""",
+    },
     "Hallucination": {
         "prompt": """You are assessing a chat bot response to a user's input based on whether it contradicts the known ground truth. Focus on factual inconsistencies and opposing statements.\n
 Score:
