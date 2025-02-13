@@ -6,7 +6,7 @@ import os
 import re
 from get_llm_answer import get_model_response, parse_model_response
 
-def select_evaluators(criteria_group, df_state, prompt_state):
+def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button):
     with gr.Group(visible=True) as model_selection_group:
         select_evaluators_button = gr.Button("Select Evaluators", visible=False)
 
@@ -50,15 +50,18 @@ def select_evaluators(criteria_group, df_state, prompt_state):
         def show_evaluator_selection():
             return {
                 criteria_group: gr.update(visible=False),
+                save_prompt_button: gr.update(visible=False),
                 evaluator_row: gr.update(visible=True),
                 run_evaluation_button: gr.update(visible=True),
             }
 
-        select_evaluators_button.click(
+        # DONT FORGET TO RENAME THIS TO SAVE_PROMPT_BUTTON.Click
+        save_prompt_button.click(
             fn=show_evaluator_selection,
             inputs=[],
             outputs=[
-                select_evaluators_button,
+                #select_evaluators_button,
+                save_prompt_button,
                 criteria_group,
                 evaluator_row,
                 run_evaluation_button,
@@ -113,7 +116,8 @@ def select_evaluators(criteria_group, df_state, prompt_state):
         df_state.change(
             fn=make_select_button_visible,
             inputs=[],
-            outputs=select_evaluators_button,
+            #outputs=select_evaluators_button,
+            #outputs=save_prompt_button,
         )
 
     return model_selection_group, df_state, analyze_results_button

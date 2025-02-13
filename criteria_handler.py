@@ -7,6 +7,7 @@ from eval_criteria_library import EXAMPLE_METRICS
 def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
     with gr.Group(visible=True) as criteria_group:
         select_eval_criteria_button = gr.Button("Select Evaluation Criteria", visible=False)
+
         criteria_dropdown = gr.Dropdown(
             choices=list(EXAMPLE_METRICS.keys()),
             label="Choose Evaluation Criteria",
@@ -29,8 +30,8 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
                     dropdown = gr.Dropdown(choices=[], label=f"Variable {i+1}", interactive=True, visible=False)
                     variable_dropdowns.append(dropdown)
 
-        # save prompt button
-        save_prompt_button = gr.Button("Save Prompt", visible=False)
+        # Now declare your save_prompt_button AFTER the dropdown
+        save_prompt_button = gr.Button("Select Evaluators", visible=False)
 
         def extract_variables(prompt):
             return re.findall(r'\{\{(.*?)\}\}', prompt)
@@ -99,12 +100,6 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
         def on_prompt_change(prompt):
             prompt_state.value = prompt  # Update prompt_state with the latest prompt
 
-        #prompt_editor.change(
-        #    fn=on_prompt_change,
-        #   inputs=prompt_editor,
-        #    outputs=None
-        #)
-
         def make_select_button_visible(df_value):
             if df_value is not None:
                 return gr.update(visible=True)
@@ -132,4 +127,4 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
             outputs=[]
         )
 
-    return criteria_group, df_state, prompt_state
+    return criteria_group, df_state, prompt_state, save_prompt_button

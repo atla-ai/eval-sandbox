@@ -1,0 +1,11 @@
+# Core dependencies
+pymongo
+gradio
+python-dotenv
+openai
+anthropic
+together
+
+# Development dependencies
+black
+pytest
