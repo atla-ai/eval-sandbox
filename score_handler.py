@@ -32,19 +32,15 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
                 label='Select Second Column to Compare'
             )
 
-        # Button to trigger calculation
-        calculate_button = gr.Button('Calculate')
+        # 1. Hide these by default
+        result_output = gr.Textbox(label='Result', lines=10, interactive=False, visible=False)
+        json_output = gr.File(label="Results .json", interactive=False, visible=False)
 
-        # Output display
-        result_output = gr.Textbox(label='Result', lines=10, interactive=False)
-
-        # Add download button for JSON results
-        download_button = gr.Button("Download Results as JSON")
-        json_output = gr.File(
-            label="Results .json",
-            interactive=False,  # Make non-interactive
-            visible=True
-        )
+        # Define the row of buttons BELOW the result textbox and JSON file
+        with gr.Row():
+            back_to_results_button = gr.Button("← Back to Results")
+            calculate_button = gr.Button("Calculate")
+            download_button = gr.Button("Download Results as JSON")
 
     # Event handler connections
 
@@ -75,39 +71,47 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
         ]
     )
 
-    # Calculate button click event
+    # This function hides the analysis_group and shows model_selection_group again
+    # (i.e., returning to "Evaluation Complete" screen).
+    def back_to_results():
+        return (
+            gr.update(visible=False),    # Hide analysis_group
+            gr.update(visible=True),     # Show model_selection_group
+        )
+
+    # Wire the back_to_results_button to hide the analysis view and re-show model_selection_group
+    back_to_results_button.click(
+        fn=back_to_results,
+        inputs=[],
+        outputs=[analysis_group, model_selection_group]
+    )
+
+    # 2. Make the "result_output" visible when "Calculate" is pressed
     def calculate_multiple_accuracies(measurement, ground_truth_col, col2_name, col3_name, df_state):
         df = df_state.value
         if df is None:
-            return "No DataFrame available."
+            return gr.update(value="No DataFrame available.", visible=True)
 
-        missing_columns = [
-            col for col in [ground_truth_col, col2_name, col3_name] if col not in df.columns
-        ]
+        missing_columns = [col for col in [ground_truth_col, col2_name, col3_name]
+                           if col not in df.columns]
         if missing_columns:
-            return f"Selected columns not found in DataFrame: {', '.join(missing_columns)}."
+            msg = f"Selected columns not found in DataFrame: {', '.join(missing_columns)}."
+            return gr.update(value=msg, visible=True)
 
-        # Prepare results for both comparisons
+        # Prepare comparison results
         output_texts = []
 
         # Compare ground_truth_col with col2_name
-        result1 = calculate_accuracy(
-            measurement, ground_truth_col, col2_name, df_state, compare_to_ground_truth=True
-        )
-        output_texts.append(
-            f"Comparison between '{ground_truth_col}' and '{col2_name}':\n{result1}"
-        )
+        result1 = calculate_accuracy(measurement, ground_truth_col, col2_name,
+                                     df_state, compare_to_ground_truth=True)
+        output_texts.append(f"Comparison between '{ground_truth_col}' and '{col2_name}':\n{result1}")
 
         # Compare ground_truth_col with col3_name
-        result2 = calculate_accuracy(
-            measurement, ground_truth_col, col3_name, df_state, compare_to_ground_truth=True
-        )
-        output_texts.append(
-            f"\nComparison between '{ground_truth_col}' and '{col3_name}':\n{result2}"
-        )
+        result2 = calculate_accuracy(measurement, ground_truth_col, col3_name,
+                                     df_state, compare_to_ground_truth=True)
+        output_texts.append(f"\nComparison between '{ground_truth_col}' and '{col3_name}':\n{result2}")
 
-        # Combine the results
-        return "\n".join(output_texts)
+        return gr.update(value="\n".join(output_texts), visible=True)
 
     calculate_button.click(
         fn=calculate_multiple_accuracies,
@@ -121,9 +125,10 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
         outputs=result_output
     )
 
+    # 3. Make the "json_output" visible only when "Download as JSON" is clicked
     def create_json_download(df_state):
         if df_state.value is None:
-            return None
+            return gr.update(value=None, visible=True)
         
         # Convert DataFrame to JSON string
         json_str = df_state.value.to_json(orient='records', indent=2)
@@ -136,7 +141,8 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(json_str)
         
-        return file_path
+        # Show this file in the UI for download
+        return gr.update(value=file_path, visible=True)
 
     download_button.click(
         fn=create_json_download,
