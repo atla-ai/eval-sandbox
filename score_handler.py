@@ -1,6 +1,8 @@
 import gradio as gr
 import pandas as pd
 import numpy as np
+import tempfile
+import os
 
 def handle_analysis(df_state, model_selection_group, analyze_results_button):
     with gr.Group(visible=False) as analysis_group:
@@ -35,6 +37,14 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
 
         # Output display
         result_output = gr.Textbox(label='Result', lines=10, interactive=False)
+
+        # Add download button for JSON results
+        download_button = gr.Button("Download Results as JSON")
+        json_output = gr.File(
+            label="Results .json",
+            interactive=False,  # Make non-interactive
+            visible=True
+        )
 
     # Event handler connections
 
@@ -109,6 +119,29 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
             df_state
         ],
         outputs=result_output
+    )
+
+    def create_json_download(df_state):
+        if df_state.value is None:
+            return None
+        
+        # Convert DataFrame to JSON string
+        json_str = df_state.value.to_json(orient='records', indent=2)
+        
+        # Create temporary file with exact name
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, 'atla_custom_eval_results.json')
+        
+        # Write the JSON to file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(json_str)
+        
+        return file_path
+
+    download_button.click(
+        fn=create_json_download,
+        inputs=[df_state],
+        outputs=[json_output]
     )
 
 # Helper functions

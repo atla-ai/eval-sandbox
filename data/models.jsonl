@@ -14,3 +14,4 @@
 {"name": "Qwen 2.5 72B Instruct Turbo", "organization": "Alibaba", "license": "Open Source", "api_model": "Qwen/Qwen2.5-72B-Instruct-Turbo"}
 {"name": "Qwen 2.5 7B Instruct Turbo", "organization": "Alibaba", "license": "Open Source", "api_model": "Qwen/Qwen2.5-7B-Instruct-Turbo"}
 {"name": "Mistral (7B) Instruct v0.1", "organization": "Mistral AI", "license": "Open Source", "api_model": "mistralai/Mistral-7B-Instruct-v0.1"}
+{"name": "Atla Selene", "organization": "Atla", "license": "Proprietary", "api_model": "atla-selene"}

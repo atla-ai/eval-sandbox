@@ -17,64 +17,72 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
 
         with gr.Row(visible=False) as mapping_row:
             with gr.Column():
-                # Left column - Prompt Editor
+                # Left column - Evaluation Criteria Editor
                 prompt_editor = gr.Textbox(
-                    label="Evaluation Prompt",
+                    label="Evaluation Criteria",
                     lines=15,
-                    visible=False
+                    visible=False,
+                    placeholder="Enter the evaluation criteria/rubric here..."
                 )
             with gr.Column():
-                # Right column - Variable Mapping
-                variable_dropdowns = []
-                for i in range(5):  # Assume up to 5 variables
-                    dropdown = gr.Dropdown(choices=[], label=f"Variable {i+1}", interactive=True, visible=False)
-                    variable_dropdowns.append(dropdown)
-
+                # Right column - Required and Optional Variable Mapping
+                # Required mappings
+                input_mapping = gr.Dropdown(
+                    choices=[], 
+                    label="Map 'model_input' to column (Required)",
+                    interactive=True, 
+                    visible=False
+                )
+                output_mapping = gr.Dropdown(
+                    choices=[], 
+                    label="Map 'model_output' to column (Required)",
+                    interactive=True, 
+                    visible=False
+                )
+                # Optional mappings
+                context_mapping = gr.Dropdown(
+                    choices=[], 
+                    label="Map 'model_context' to column (Optional)",
+                    interactive=True, 
+                    visible=False
+                )
+                expected_output_mapping = gr.Dropdown(
+                    choices=[], 
+                    label="Map 'expected_model_output' to column (Optional)",
+                    interactive=True, 
+                    visible=False
+                )
         # We'll place the "Back to Data" and "Select Evaluators" within the same row:
         with gr.Row(visible=False) as nav_row:
             back_to_data_button = gr.Button("← Back to Data", visible=False)
             save_prompt_button = gr.Button("Select Evaluators", visible=False)
 
-        def extract_variables(prompt):
-            return re.findall(r'\{\{(.*?)\}\}', prompt)
-
-        def update_variable_mappings(prompt, df_state):
+        def update_column_choices(df_state):
             df = df_state.value
             columns = df.columns.tolist() if df is not None else []
-            variables = extract_variables(prompt)
-            updates = {}
-            for i, dropdown in enumerate(variable_dropdowns):
-                if i < len(variables):
-                    updates[dropdown] = gr.update(
-                        choices=columns,
-                        label=f"Map '{{{{{variables[i]}}}}}' to column",
-                        visible=True
-                    )
-                else:
-                    updates[dropdown] = gr.update(visible=False)
-            return updates
+            return {
+                input_mapping: gr.update(choices=columns, visible=True),
+                output_mapping: gr.update(choices=columns, visible=True),
+                context_mapping: gr.update(choices=['None'] + columns, visible=True),
+                expected_output_mapping: gr.update(choices=['None'] + columns, visible=True)
+            }
 
         def update_prompt(selected_criteria, df_state):
             if selected_criteria in EXAMPLE_METRICS:
-                prompt = EXAMPLE_METRICS[selected_criteria]['prompt']
+                evaluation_criteria = EXAMPLE_METRICS[selected_criteria]['prompt']
             else:
-                prompt = ""
-            prompt_update = gr.update(value=prompt, visible=True)
-            variable_updates = update_variable_mappings(prompt, df_state)
-            updates = {prompt_editor: prompt_update}
-            updates.update(variable_updates)
+                evaluation_criteria = ""
+            updates = {prompt_editor: gr.update(value=evaluation_criteria, visible=True)}
+            updates.update(update_column_choices(df_state))
             return updates
 
         def show_criteria_selection():
             default_criterion = list(EXAMPLE_METRICS.keys())[0]
-            prompt = EXAMPLE_METRICS[default_criterion]['prompt']
-            prompt_update = gr.update(value=prompt, visible=True)
-            variable_updates = update_variable_mappings(prompt, df_state)
-            # Show the relevant controls for criteria selection
+            evaluation_criteria = EXAMPLE_METRICS[default_criterion]['prompt']
             updates = {
                 select_eval_criteria_button: gr.update(visible=False),
                 criteria_dropdown: gr.update(visible=True),
-                prompt_editor: prompt_update,
+                prompt_editor: gr.update(value=evaluation_criteria, visible=True),
                 data_upload_group: gr.update(visible=False),
                 mapping_row: gr.update(visible=True),
                 # Show the nav row and buttons
@@ -82,38 +90,85 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
                 back_to_data_button: gr.update(visible=True),
                 save_prompt_button: gr.update(visible=True),
             }
-            updates.update(variable_updates)
+            updates.update(update_column_choices(df_state))
             return updates
 
+        def save_prompt(evaluation_criteria, input_col, output_col, context_col, expected_output_col):
+            # Use the actual Jinja template with proper Jinja syntax and raw JSON
+            template = '''You are tasked with evaluating a response based on a given instruction (which may contain an Input) and a scoring rubric. Provide a comprehensive feedback on the response quality strictly adhering to the scoring rubric, without any general evaluation. Follow this with a score, referring to the scoring rubric. Avoid generating any additional opening, closing, or explanations.
+
+Here are some rules of the evaluation:
+(1) You should prioritize evaluating whether the response satisfies the provided rubric. The basis of your score should depend exactly on the rubric. However, the response does not need to explicitly address points raised in the rubric. Rather, evaluate the response based on the criteria outlined in the rubric.
+
+Your reply should strictly follow this format:
+Your output format should strictly adhere to JSON as follows: {% raw %}{"feedback": "<write feedback>", "result": <numerical score>}{% endraw %}. Ensure the output is valid JSON, without additional formatting or explanations.
+
+Here is the data.
+
+{% if model_context is defined and model_context %}Context:
+```
+{{ model_context }}
+```
+
+{% endif %}Instruction:
+```
+{{ model_input }}
+```
+
+Response:
+```
+{{ model_output }}
+```
+
+Score Rubrics:
+{{ evaluation_criteria }}
+
+{% if expected_model_output is defined and expected_model_output %}Reference answer:
+{{ expected_model_output }}{% endif %}'''
+            
+            # Create mapping dictionary
+            mapping_dict = {
+                'model_input': input_col,
+                'model_output': output_col,
+                'evaluation_criteria': evaluation_criteria
+            }
+            
+            # Add optional mappings if selected
+            if context_col != 'None':
+                mapping_dict['model_context'] = context_col
+            if expected_output_col != 'None':
+                mapping_dict['expected_model_output'] = expected_output_col
+                
+            prompt_state.value = {
+                'template': template,
+                'mappings': mapping_dict
+            }
+
+        # Update event handlers
         select_eval_criteria_button.click(
             fn=show_criteria_selection,
             inputs=[],
             outputs=[
+                
                 select_eval_criteria_button,
                 criteria_dropdown,
                 prompt_editor,
+               
                 data_upload_group,
                 mapping_row,
                 nav_row,
                 back_to_data_button,
                 save_prompt_button
-            ] + variable_dropdowns
+            ,
+                input_mapping, output_mapping, context_mapping, expected_output_mapping
+            ]
         )
 
         criteria_dropdown.change(
             fn=update_prompt,
             inputs=[criteria_dropdown, df_state],
-            outputs=[prompt_editor] + variable_dropdowns
+            outputs=[prompt_editor, input_mapping, output_mapping, context_mapping, expected_output_mapping]
         )
-
-        prompt_editor.change(
-            fn=update_variable_mappings,
-            inputs=[prompt_editor, df_state],
-            outputs=variable_dropdowns
-        )
-
-        def on_prompt_change(prompt):
-            prompt_state.value = prompt  # Update prompt_state with the latest prompt
 
         def make_select_button_visible(df_value):
             if df_value is not None:
@@ -127,18 +182,12 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
             outputs=select_eval_criteria_button
         )
 
-        def save_prompt(prompt, *variable_mappings):
-            variables = extract_variables(prompt)
-            mapping_dict = {var: mapping for var, mapping in zip(variables, variable_mappings) if mapping}
-            # Replace variables with mapped column names
-            for var in variables:
-                if mapping_dict.get(var):
-                    prompt = prompt.replace(f"{{{{{var}}}}}", f"{{{{{mapping_dict[var]}}}}}")
-            prompt_state.value = prompt
-
         save_prompt_button.click(
             fn=save_prompt,
-            inputs=[prompt_editor] + variable_dropdowns,
+            inputs=[
+                prompt_editor, input_mapping, output_mapping,
+                context_mapping, expected_output_mapping
+            ],
             outputs=[]
         )
 

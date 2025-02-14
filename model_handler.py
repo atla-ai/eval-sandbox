@@ -4,7 +4,8 @@ import gradio as gr
 import json
 import os
 import re
-from get_llm_answer import get_model_response, parse_model_response
+from get_llm_answer import get_model_response, parse_model_response, get_atla_response
+from jinja2 import Template
 
 def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button):
     with gr.Group(visible=True) as model_selection_group:
@@ -36,7 +37,7 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
         # Define dropdowns using model choices
         with gr.Row(visible=False) as evaluator_row:
                judge_a_dropdown = gr.Dropdown(
-                   choices=model_choices, label="Judge A", value="GPT-4o"
+                   choices=["Atla Selene"], label="Judge A", value="Atla Selene", interactive=False
                )
                judge_b_dropdown = gr.Dropdown(
                    choices=model_choices, label="Judge B", value="Claude 3.5 Sonnet"
@@ -72,26 +73,68 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
         def run_evaluation(judge_a, judge_b):
             # Show loading spinner
             yield {loading_spinner: gr.update(visible=True)}
+            
+            # Get template and mappings from prompt state
+            template_str = prompt_state.value['template']
+            mappings = prompt_state.value['mappings']
+            evaluation_criteria = mappings.get('evaluation_criteria')
+            
+            # Create Jinja template for Judge B only
+            template = Template(template_str)
+            
             # Submit prompt to chosen models
-            prompt_template = prompt_state.value
             for index, row in df_state.value.iterrows():
-                variable_values_dict = row.to_dict()
-                prompt_state.value = prompt_template
-                for key, value in variable_values_dict.items():
-                    prompt_state.value = prompt_state.value.replace(f"{{{{{key}}}}}", str(value))
-                response_a = get_model_response(judge_a, model_data.get(judge_a), prompt_state.value)
-                response_b = get_model_response(judge_b, model_data.get(judge_b), prompt_state.value)
-                # Parse the responses
-                score_a, critique_a = parse_model_response(response_a)
+                # Create a context dictionary for this row
+                context = {}
+                model_context = None
+                expected_output = None
+                
+                for key, column in mappings.items():
+                    if key == 'evaluation_criteria':
+                        continue  # Skip as we handle it separately
+                    elif column and column != 'None':
+                        context[key] = str(row[column])
+                        if column == 'model_context':
+                            model_context = str(row[column])
+                        elif column == 'expected_model_output':
+                            expected_output = str(row[column])
+                
+                # For Judge B, render the template using Jinja
+                current_prompt = template.render(**context)
+                # For Judge A (Atla Selene), call get_atla_response directly
+                response_a = get_atla_response(
+                    "atla-selene",
+                    model_input=context.get('model_input'),
+                    model_output=context.get('model_output'),
+                    model_context=model_context,
+                    expected_output=expected_output,
+                    evaluation_criteria=evaluation_criteria
+                )
+                response_b = get_model_response(
+                    judge_b, 
+                    model_data.get(judge_b), 
+                    current_prompt
+                )
+                
+                # Parse the responses - handle Atla response differently
+                if isinstance(response_a, dict):  # Atla response
+                    score_a, critique_a = response_a['score'], response_a['critique']
+                else:  # Error case
+                    score_a, critique_a = "Error", response_a
+                    
                 score_b, critique_b = parse_model_response(response_b)
+                
                 df_state.value.loc[index, 'score_a'] = score_a
                 df_state.value.loc[index, 'critique_a'] = critique_a
                 df_state.value.loc[index, 'score_b'] = score_b
                 df_state.value.loc[index, 'critique_b'] = critique_b
+            
             import time
             time.sleep(2)
+            
             # Hide loading spinner
             yield {loading_spinner: gr.update(visible=False)}
+            
             # Start Generation Here
             markdown_table = df_state.value.to_string()
             yield {
@@ -109,15 +152,6 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
             outputs=[loading_spinner, analyze_results_button],
         )
 
-        # Make "Select Evaluators" button visible
-        def make_select_button_visible(*args):
-            return gr.update(visible=True)
 
-        df_state.change(
-            fn=make_select_button_visible,
-            inputs=[],
-            #outputs=select_evaluators_button,
-            #outputs=save_prompt_button,
-        )
 
     return model_selection_group, df_state, analyze_results_button

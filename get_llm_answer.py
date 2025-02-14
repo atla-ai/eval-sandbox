@@ -5,6 +5,7 @@ import anthropic
 from together import Together
 import json
 import re
+import atla
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -13,6 +14,7 @@ load_dotenv()
 anthropic_client = anthropic.Anthropic()
 openai_client = OpenAI()
 together_client = Together()
+atla_client = atla.Atla()
 
 SYSTEM_PROMPT = """Please act as an impartial judge and evaluate based on the user's instruction. Your output format should strictly adhere to JSON as follows: {"feedback": "<write feedback>", "result": <numerical score>}. Ensure the output is valid JSON, without additional formatting or explanations."""
 
@@ -62,7 +64,27 @@ def get_together_response(model_name, prompt):
         return f"Error with Together model {model_name}: {str(e)}"
 
 
-def get_model_response(model_name, model_info, prompt):
+def get_atla_response(model_name, model_input, model_output, model_context, expected_output, evaluation_criteria):
+    """Get response from Atla API"""
+    try:
+        response = atla_client.evaluation.create(
+            model_id=model_name,
+            model_input=model_input,
+            model_output=model_output,
+            model_context=model_context,
+            expected_model_output=expected_output,
+            evaluation_criteria=evaluation_criteria,
+        )
+        # Return the score and critique directly from the evaluation result
+        return {
+            "score": response.result.evaluation.score,
+            "critique": response.result.evaluation.critique
+        }
+    except Exception as e:
+        return f"Error with Atla model {model_name}: {str(e)}"
+
+
+def get_model_response(model_name, model_info, prompt=None, **kwargs):
     """Get response from appropriate API based on model organization"""
     if not model_info:
         return "Model not found or unsupported."
@@ -71,7 +93,16 @@ def get_model_response(model_name, model_info, prompt):
     organization = model_info["organization"]
 
     try:
-        if organization == "OpenAI":
+        if organization == "Atla":
+            return get_atla_response(
+                api_model,
+                kwargs.get('model_input'),
+                kwargs.get('model_output'),
+                kwargs.get('model_context'),
+                kwargs.get('expected_output'),
+                kwargs.get('evaluation_criteria')
+            )
+        elif organization == "OpenAI":
             return get_openai_response(api_model, prompt)
         elif organization == "Anthropic":
             return get_anthropic_response(api_model, prompt)
