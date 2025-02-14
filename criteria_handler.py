@@ -30,8 +30,10 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
                     dropdown = gr.Dropdown(choices=[], label=f"Variable {i+1}", interactive=True, visible=False)
                     variable_dropdowns.append(dropdown)
 
-        # Now declare your save_prompt_button AFTER the dropdown
-        save_prompt_button = gr.Button("Select Evaluators", visible=False)
+        # We'll place the "Back to Data" and "Select Evaluators" within the same row:
+        with gr.Row(visible=False) as nav_row:
+            back_to_data_button = gr.Button("← Back to Data", visible=False)
+            save_prompt_button = gr.Button("Select Evaluators", visible=False)
 
         def extract_variables(prompt):
             return re.findall(r'\{\{(.*?)\}\}', prompt)
@@ -68,12 +70,16 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
             prompt = EXAMPLE_METRICS[default_criterion]['prompt']
             prompt_update = gr.update(value=prompt, visible=True)
             variable_updates = update_variable_mappings(prompt, df_state)
+            # Show the relevant controls for criteria selection
             updates = {
                 select_eval_criteria_button: gr.update(visible=False),
                 criteria_dropdown: gr.update(visible=True),
                 prompt_editor: prompt_update,
                 data_upload_group: gr.update(visible=False),
                 mapping_row: gr.update(visible=True),
+                # Show the nav row and buttons
+                nav_row: gr.update(visible=True),
+                back_to_data_button: gr.update(visible=True),
                 save_prompt_button: gr.update(visible=True),
             }
             updates.update(variable_updates)
@@ -82,7 +88,16 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
         select_eval_criteria_button.click(
             fn=show_criteria_selection,
             inputs=[],
-            outputs=[select_eval_criteria_button, criteria_dropdown, prompt_editor, data_upload_group, mapping_row, save_prompt_button] + variable_dropdowns
+            outputs=[
+                select_eval_criteria_button,
+                criteria_dropdown,
+                prompt_editor,
+                data_upload_group,
+                mapping_row,
+                nav_row,
+                back_to_data_button,
+                save_prompt_button
+            ] + variable_dropdowns
         )
 
         criteria_dropdown.change(
@@ -127,4 +142,32 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
             outputs=[]
         )
 
+        # BACK BUTTON: Hide the criteria UI, show the data upload UI
+        def back_to_data():
+            return {
+                # show data upload group again
+                data_upload_group: gr.update(visible=True),
+                # hide the criteria group
+                criteria_dropdown: gr.update(visible=False),
+                prompt_editor: gr.update(visible=False),
+                mapping_row: gr.update(visible=False),
+                nav_row: gr.update(visible=False),
+                # make "Select Evaluation Criteria" button visible again
+                select_eval_criteria_button: gr.update(visible=True),
+            }
+
+        back_to_data_button.click(
+            fn=back_to_data,
+            inputs=[],
+            outputs=[
+                data_upload_group,
+                criteria_dropdown,
+                prompt_editor,
+                mapping_row,
+                nav_row,
+                select_eval_criteria_button
+            ]
+        )
+
+    # Return both the criteria rule group, the df_state, prompt_state, save_prompt_button
     return criteria_group, df_state, prompt_state, save_prompt_button
