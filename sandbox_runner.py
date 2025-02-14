@@ -5,14 +5,17 @@ from data_handler import upload_test_data
 from criteria_handler import select_evaluation_criteria
 from model_handler import select_evaluators
 from score_handler import handle_analysis
-from hello_world_tab import hello_world_tab
+from random_sample_tab import random_sample_tab
 
 def run_sandbox():
     with gr.Blocks() as demo:
-        gr.Markdown("# Atla Eval Sandbox testing")
+        gr.Markdown("# Atla Testing Sandbox")
         with gr.Tabs():
+            # Random samples tab
+            random_sample_tab()
+
             # Sandbox tab
-            with gr.TabItem("Sandbox"):
+            with gr.TabItem("Custom Dataset"):
                 # Initialize state object to track the DataFrame
                 df_state = gr.State(value=None)
                 # Initialize state object to track the prompt
@@ -33,9 +36,6 @@ def run_sandbox():
 
                 # Result analysis
                 handle_analysis(df_state, model_selection_group, analyze_results_button)
-
-            # Hello World tab
-            hello_world_tab()
 
     demo.launch()
 
