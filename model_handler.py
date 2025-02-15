@@ -43,7 +43,15 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
                    choices=model_choices, label="Judge B", value="Claude 3.5 Sonnet"
                )
 
+        # A Markdown for "Evaluation in progress..." and final heading
         loading_spinner = gr.Markdown("Evaluation in progress...", visible=False)
+
+        # NEW: define a Dataframe to show final evaluation results, like in data_handler
+        evaluation_result_df = gr.Dataframe(
+            visible=False,
+            label="Evaluation Results",
+            elem_classes=["truncate_cells"]
+        )
 
         # Define the three-button row AFTER the markdown, 
         # so it appears *below* the "Evaluation Complete" message.
@@ -62,17 +70,18 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
                 evaluation_nav_row: gr.update(visible=True),
                 run_evaluation_button: gr.update(visible=True),
                 back_to_criteria_button: gr.update(visible=True),
+                # By default, hide "Analyze Results" and the result dataframe
+                analyze_results_button: gr.update(visible=False),
+                evaluation_result_df: gr.update(visible=False),
             }
-            # By default, keep "Analyze Results" hidden unless 'eval_done' is set
-            updates[analyze_results_button] = gr.update(visible=False)
-
             if (
                 current_df.value is not None
                 and hasattr(current_df.value, "attrs")
                 and current_df.value.attrs.get("eval_done")
             ):
-                # If a previous evaluation was completed, show the markdown again
-                updates[loading_spinner] = gr.update(visible=True)
+                # If a previous evaluation was completed, show the heading + dataframe
+                updates[loading_spinner] = gr.update(value="### Evaluation Complete", visible=True)
+                updates[evaluation_result_df] = gr.update(value=current_df.value, visible=True)
                 updates[analyze_results_button] = gr.update(visible=True)
 
             return updates
@@ -90,6 +99,7 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
                 back_to_criteria_button,
                 loading_spinner,
                 analyze_results_button,
+                evaluation_result_df,
             ],
         )
 
@@ -104,6 +114,7 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
                 # Hide the "Evaluation Complete" markdown
                 loading_spinner: gr.update(visible=False),
                 analyze_results_button: gr.update(visible=False),
+                evaluation_result_df: gr.update(visible=False),
             }
 
         back_to_criteria_button.click(
@@ -116,7 +127,8 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
                 evaluation_nav_row,
                 run_evaluation_button,
                 loading_spinner,
-                analyze_results_button
+                analyze_results_button,
+                evaluation_result_df
             ],
         )
 
@@ -186,14 +198,11 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
             # Hide loading spinner
             yield {loading_spinner: gr.update(visible=False)}
             
-            # Start Generation Here
-            markdown_table = df_state.value.to_string()
+            # Show "Evaluation Complete" heading and the final DataFrame
             yield {
-                loading_spinner: gr.update(
-                    value=f"### Evaluation Complete\n\n```\n{markdown_table}\n```",
-                    visible=True
-                ),
-                analyze_results_button: gr.update(visible=True),  # Now appears
+                loading_spinner: gr.update(value="### Evaluation Complete", visible=True),
+                evaluation_result_df: gr.update(value=df_state.value, visible=True),
+                analyze_results_button: gr.update(visible=True),
             }
 
             # Store the "already run evaluation" flag safely in .attrs
@@ -203,7 +212,7 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
         run_evaluation_button.click(
             fn=run_evaluation,
             inputs=[judge_a_dropdown, judge_b_dropdown],
-            outputs=[loading_spinner, analyze_results_button],
+            outputs=[loading_spinner, evaluation_result_df, analyze_results_button],
         )
 
 

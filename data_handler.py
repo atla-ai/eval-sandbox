@@ -10,7 +10,12 @@ def upload_test_data(df_state):
             file_types=[".json"],
         )
         import_button = gr.Button("Import Data", visible=False)
-        df_display = gr.Dataframe(visible=False)
+        # Show exactly 5 rows, no scrolling
+        df_display = gr.Dataframe(
+            visible=False,
+            elem_classes=["truncate_cells"],
+            label="Uploaded Data"
+        )
         error_display = gr.Textbox(visible=False)
 
     def display_file_info(file):

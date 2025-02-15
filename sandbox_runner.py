@@ -8,7 +8,21 @@ from score_handler import handle_analysis
 from random_sample_tab import random_sample_tab
 
 def run_sandbox():
-    with gr.Blocks() as demo:
+    with gr.Blocks(css="""
+    .truncate_cells table {
+        table-layout: fixed !important;
+        width: 100% !important;
+    }
+    .truncate_cells table td,
+    .truncate_cells table th {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 200px !important;
+        text-align: left !important;
+        vertical-align: top !important;
+    }
+    """) as demo:
         gr.Markdown("# Atla Testing Sandbox")
         with gr.Tabs():
             # Random samples tab
