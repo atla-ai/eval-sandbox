@@ -188,6 +188,10 @@ def calculate_accuracy(measurement, col1, col2, df_state, compare_to_ground_trut
 def process_pairwise_accuracy(results_df: pd.DataFrame, compare_to_ground_truth=False) -> dict:
     # Compute 'results' column based on whether comparing to ground truth
     if compare_to_ground_truth:
+        # NEW: convert both columns to float
+        results_df['ground_truth'] = results_df['ground_truth'].apply(convert_to_float_or_nan)
+        results_df['predicted'] = results_df['predicted'].apply(convert_to_float_or_nan)
+
         results_df['results'] = results_df['ground_truth'] == results_df['predicted']
         num_extracted_nan = int(results_df['predicted'].isna().sum())
     else:
