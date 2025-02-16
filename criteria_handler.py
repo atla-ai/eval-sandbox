@@ -7,7 +7,7 @@ from eval_criteria_library import EXAMPLE_METRICS
 def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
     with gr.Group(visible=True) as criteria_group:
         select_eval_criteria_button = gr.Button("Select Evaluation Criteria", visible=False)
-
+        
         criteria_dropdown = gr.Dropdown(
             choices=list(EXAMPLE_METRICS.keys()),
             label="Choose Evaluation Criteria",

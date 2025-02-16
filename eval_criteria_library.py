@@ -1,127 +1,61 @@
 EXAMPLE_METRICS = {
 "Custom":  {
     "prompt":
-    """You are assessing a chat bot response to a user's input based on [INSERT CRITERIA]
-Score:
-A score of 1 means that the response's answer meets all of the evaluation criteria.
-A score of 0 means that the response's answer does not meet all of the evaluation criteria.
+    """Evaluate a chat bot response to a user's input based on [INSERT CRITERIA OR SELECT EXAMPLE FROM LIST]
 
-Here is the data:
-[BEGIN DATA]
-***
-[User Query]: {{input}}
-***
-[Response]: {{response}}
-***
-[END DATA]""",
+0: The response's answer does not meet all of the evaluation criteria.
+1: The response's answer meets all of the evaluation criteria.""",
     },
-    "Hallucination": {
-        "prompt": """You are assessing a chat bot response to a user's input based on whether it contradicts the known ground truth. Focus on factual inconsistencies and opposing statements.\n
-Score:
-A score of 0 means the response contains no contradictions to the ground truth.
-A score of 1 means the response contains contradictions to the ground truth.\n
-Here is the data:
-[BEGIN DATA]
-***
-[User Query]: {{input}}
-***
-[Ground Truth Response]: {{ground_truth}}
-***
-[Response]: {{response}}
-***
-[END DATA]""",
-        "input": """Lichens are symbiotic organisms made of green algae and fungi. What do the green algae supply to the fungi in this symbiotic relationship?
-A) Carbon dioxide 
-B) Food
-C) Protection
-D) Water""",
-        # Example from ARC Evals
-        "ground_truth": "B) Food",
-        "response": "C) Protection",
+    "Relevance": {
+        "prompt": """Evaluate how well the response fulfill the requirements of the instruction by providing relevant information. This includes responding in accordance with the explicit and implicit purpose of given instruction.
+
+1: The response is completely unrelated to the instruction, or the model entirely misunderstands the instruction.
+2: Most of the key points in the response are irrelevant to the instruction, and the response misses major requirements of the instruction.
+3: Some major points in the response contain irrelevant information or miss some requirements of the instruction.
+4: The response is relevant to the instruction but misses minor requirements of the instruction.
+5: The response is perfectly relevant to the instruction, and the model fulfills all of the requirements of the instruction.""",
     },
-    "Precision": {
-        "prompt": """You are assessing a chat bot response to a user's input based on how completely it captures the key facts and details from the ground truth response.\n
-Score:
-A score of 1 means the response is completely irrelevant or contradicts the ground truth response.
-A score of 2 means the response includes some relevant information but is mostly filled with irrelevant or incorrect details.
-A score of 3 means the response is somewhat relevant with a balanced mix of relevant and irrelevant information.
-A score of 4 means the response is mostly relevant, containing only minor irrelevant details.
-A score of 5 means the response is entirely relevant, perfectly aligning with the ground truth response without any irrelevant information.\n
-Here is the data:
-[BEGIN DATA]
-***
-[User Query]: {{input}}
-***
-[Ground Truth Response]: {{ground_truth}}
-***
-[Response]: {{response}}
-***
-[END DATA]""",
-        # Example from Prometheus
-        "input": "In a city, there are three different colored houses - red, blue, and yellow. The city council has made a rule that no two same colored houses can be adjacent to each other. A query is raised by the city planner who is designing the layout of the houses. The query is, 'Can you help me design a layout where I can place these houses without violating the rule of the city council?' The user didn't provide information about the total number of houses, the layout structure, or the proportion of house colors.",
-        "ground_truth": "In order to provide an accurate layout design, I'll need a bit more information. Could you please specify how many houses in total are to be placed in the city? Also, it would be helpful to know the ratio of the different colored houses. Are there equal numbers of red, blue, and yellow houses, or does one color predominate? Furthermore, understanding the layout structure you have in mind is also important. Is it a linear layout, a circular one, a block-based one, or some other structure? Once I have these details, I'll be able to provide a more precise and useful answer.",
-        "response": "In designing the layout, you could alternate between the three colors - red, blue, and yellow, to ensure no two houses of the same color are next to each other. You could possibly start with a red house, followed by a blue, then a yellow, and then repeat the sequence until all houses are placed. However, the total number of houses and the ratio of the different colored houses could affect the final layout. For instance, if there are more red houses than blue and yellow, some adjustments may need to be made. Also, the structure of the layout could play a role, whether it's a linear or block-based layout, or any other. It might be helpful to get some additional information about these aspects, but based on the information provided, this approach could work.",
+    "Correctness": {
+        "prompt": """Evaluate whether the information provided in the response is correct given the reference response. Ignore differences in punctuation and phrasing between the student answer and true answer. It is okay if the student answer contains more information than the true answer, as long as it does not contain any conflicting statements.
+
+0: The response is not factually accurate when compared against the reference response or includes conflicting statements.
+1: The response is supported by the reference response and does not contain conflicting statements.""",
     },
-    "Recall": {
-        "prompt": """You are assessing a chat bot response to a user's input based on how completely it captures the key facts and details from the ground truth response.\n
-Score:
-A score of 1 means the response misses almost all the key facts and details from the ground truth.
-A score of 2 means the response includes only a few of the key facts and details from the ground truth.
-A score of 3 means the response captures a moderate amount of the key facts and details from the ground truth.
-A score of 4 means the response includes most of the key facts and details from the ground truth.
-A score of 5 means the response perfectly captures all key facts and details from the ground truth without omission.\n
-Here is the data:
-[BEGIN DATA]
-***
-[User Query]: {{input}}
-***
-[Ground Truth Response]: {{ground_truth}}
-***
-[Response]: {{response}}
-***
-[END DATA]""",
-        # Example from Prometheus
-        "input": """There's a thing that's bothering me. It's related to a kind of fruit, but not really the usual ones we eat. It's sweet, crunchy, and a lot of people like it, but it's not something you'd normally find in a grocery store. What kind of fruit am I talking about?""",
-        "ground_truth": """Based on your description, it seems like you might be referring to the 'honeycrisp apple'. While it is a type of fruit and is known for its sweetness and crunchiness, it's not as commonly found in grocery stores as other fruit varieties due to its specific growing requirements and seasonality. Its unique taste and texture make it a favorite among many people. However, it's important to note that there could potentially be other fruits that also fit the given description, as taste and texture can vary significantly among fruit varieties.""",
-        "response": """From your clues, it seems that you might be referring to a 'honeycrisp apple'. This fruit is known for its sweetness and crunchiness, but it isn't typically seen in many grocery stores. Many people do enjoy its unique taste and texture. However, without more specific details, there could be other fruits that also match your description. Some fruits can share similar characteristics like sweetness and crunchiness.""",
-    },
-    "Logical_Coherence": {
-        "prompt": """You are assessing a chat bot response to a user's input based on the logical coherence of the response.\n
-Score:
-A score of 1 means the response is illogical, contains internal contradictions, or has significant jumps in reasoning that make it hard to follow.
-A score of 3 means the response follows some logical flow but has minor inconsistencies or gaps in reasoning.
-A score of 5 means the response is completely logically coherent, with clear connections between ideas and a natural progression of thought.\n
-Here is the data:
-[BEGIN DATA]
-***
-[User Query]: {{input}}
-***
-[Response]: {{response}}
-***
-[END DATA]""",
-        # Example from RewardBench
-        "input": "How did US states get their names?",
-        "response": "US states got their names for a variety of reasons. Many are named after early explorers, leaders, or patriots. Some are named after geographical features, such as mountains or rivers. Others are named after plants or animals that are native to the state. Some are even named after historical figures or characters from literature or mythology.",
+    "Helpfulness": {
+        "prompt": """Evaluate how helpful the response is to address the user query.
+
+1: The response is not at all useful, failing to address the instruction or provide any valuable information.
+2: The response has minimal usefulness, addressing the instruction only superficially or providing mostly irrelevant information.
+3: The response is moderately useful, addressing some aspects of the instruction effectively but lacking in others.
+4: The response is very useful, effectively addressing most aspects of the instruction and providing valuable information.
+5: The response is exceptionally useful, fully addressing the instruction and providing highly valuable information.""",
     },
     "Faithfulness": {
-        "prompt": """You are assessing a chat bot response to a user's input based on the faithfulness of the response to the context retrieved.\n
-Score:
-A score of 1 means that the response contains statements that directly contradict the context or are entirely unsupported by it.
-A score of 3 means that the response contains some statements that are not directly supported by the context.
-A score of 5 means that the response is fully grounded in the context, with all statements accurately reflecting the provided information.\n
-Here is the data:
-[BEGIN DATA]
-***
-[User Query]: {{input}}
-***
-[Retrieved Context]: {{context}}
-*** 
-[Response]: {{response}}
-***
-[END DATA]""",
-        # Example from RAGTruth
-        "input": "How to prepare to get an ultrasound?",
-        "context": """Passage 1: 1 If you are just interested in checking the gender, you can go as early as 17 weeks. 2 Any earlier, and the results may not be accurate, leading to an extra coat of paint for your bedroom. 3 To get good pictures, 3D ultrasounds are best performed between 20 and 32 weeks, and the best pictures are between 24 and 30 weeks.""",
-        "response": """ Based on the given passages, here’s how to prepare for an ultrasound: For a gender reveal ultrasound, wait until at least 17 weeks of pregnancy to ensure accurate results. For 3D ultrasounds, schedule the appointment between 20 and 32 weeks of pregnancy for the best pictures""",
+        "prompt": """Evaluate how well the statements in the response are directly supported by the context given in the related passages.
+
+1: The response contains statements that directly contradict the context or are entirely unsupported by it.
+2: The response includes some information from the context, but contains significant ungrounded claims or misinterpretations.
+3: The response is mostly grounded in the context, with only minor unsupported claims or misinterpretations.
+4: The response closely aligns with the context, with only rare and minor deviations.
+5: The response is fully grounded in the context, with all statements accurately reflecting the provided information.""",
+    },
+    "Logical coherence": {
+        "prompt": """Evaluate how logically accurate and correct the response is for the instruction given.
+
+1: The logic of the model’s response is completely incoherent.
+2: The model’s response contains major logical inconsistencies or errors.
+3: The model’s response contains some logical inconsistencies or errors, but they are not significant."
+4: The model’s response is logically sound, but it is slightly flawed in some aspect.
+5: The model’s response is logically flawless.""",
+    },
+    "Conciseness": {
+        "prompt": """Evaluate how concise the response is presented to the user without any unncecessary information.
+
+1: The response is highly redundant or contains a lot of unnecessary information, requiring a complete rewrite for optimal clarity and efficiency.
+2: The response lacks conciseness and needs a substantial rewrite for better optimization.
+3: The response is somewhat concise but includes unnecessary information, requiring
+some edits for improved optimization.
+4: The response is mostly concise but could benefit from minor edits for better optimization.
+5: The response is optimally concise and does not contain any unnecessary information, requiring no further optimization.""",
     },
 }

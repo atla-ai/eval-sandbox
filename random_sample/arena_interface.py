@@ -148,9 +148,6 @@ def create_arena_interface():
                 with gr.Row(visible=False) as compatible_edit_buttons_row:
                     compatible_cancel_btn = gr.Button("Cancel")
                     compatible_save_btn = gr.Button("Save", variant="primary")
-            
-            gr.Markdown("*The sample being evaluated is always appended as:*")
-            gr.Markdown(f"```{FIXED_EVAL_SUFFIX}")
 
         eval_prompt_previous = gr.State(value=DEFAULT_EVAL_PROMPT_EDITABLE)  # Initialize with default value
         is_editing = gr.State(False)  # Track editing state
