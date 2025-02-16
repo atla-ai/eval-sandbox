@@ -10,53 +10,53 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
 
         # Dropdown to select the accuracy measurement
         accuracy_measurement_dropdown = gr.Dropdown(
-            choices=['Pairwise Accuracy', 'Pearson Correlation'],
-            label='Select Accuracy Measurement'
+            choices=['Accuracy', 'Pearson Correlation'],
+            label='Select Evaluation Metric'
         )
 
-        # Dropdowns to select columns to compare
+        # We remove the two compare dropdowns and only keep ground truth
         with gr.Row():
-            # First dropdown for ground truth labels
             ground_truth_dropdown = gr.Dropdown(
                 choices=[],
-                label='Select Ground Truth Labels'
-            )
-            # Second dropdown for first comparison column
-            compare_column1_dropdown = gr.Dropdown(
-                choices=[],
-                label='Select First Column to Compare'
-            )
-            # Third dropdown for second comparison column
-            compare_column2_dropdown = gr.Dropdown(
-                choices=[],
-                label='Select Second Column to Compare'
+                label='Select True Label Column'
             )
 
-        # 1. Hide these by default
-        result_output = gr.Textbox(label='Result', lines=10, interactive=False, visible=False)
+        # Define two side-by-side boxes for results
+        with gr.Row():
+            judge_a_result = gr.Textbox(
+                label="Judge A Results",
+                lines=10,
+                interactive=False,
+                visible=False
+            )
+            judge_b_result = gr.Textbox(
+                label="Judge B Results",
+                lines=10,
+                interactive=False,
+                visible=False
+            )
+
+        # Move the JSON output below those textboxes and buttons
         json_output = gr.File(label="Results .json", interactive=False, visible=False)
 
-        # Define the row of buttons BELOW the result textbox and JSON file
+        # Now place the row of buttons AFTER the json_output
         with gr.Row():
             back_to_results_button = gr.Button("← Back to Results")
             calculate_button = gr.Button("Calculate")
             download_button = gr.Button("Download Results as JSON")
 
-    # Event handler connections
-
-    # When "Analyze Results" button is clicked, show analysis group and hide model_selection_group
+    # Show analysis group
     def show_analysis_group():
         df = df_state.value
         if df is not None:
             columns = df.columns.tolist()
         else:
             columns = []
+        # Now we only update ground_truth_dropdown
         return (
-            gr.update(visible=True),                 # Show analysis_group
-            gr.update(visible=False),                # Hide model_selection_group
-            gr.update(choices=columns),              # Update ground_truth_dropdown
-            gr.update(choices=columns),              # Update compare_column1_dropdown
-            gr.update(choices=columns),              # Update compare_column2_dropdown
+            gr.update(visible=True),         # analysis_group
+            gr.update(visible=False),        # model_selection_group
+            gr.update(choices=columns),      # ground_truth_dropdown
         )
 
     analyze_results_button.click(
@@ -65,83 +65,84 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
         outputs=[
             analysis_group,
             model_selection_group,
-            ground_truth_dropdown,
-            compare_column1_dropdown,
-            compare_column2_dropdown
+            ground_truth_dropdown  # only this one
         ]
     )
 
-    # This function hides the analysis_group and shows model_selection_group again
-    # (i.e., returning to "Evaluation Complete" screen).
     def back_to_results():
         return (
-            gr.update(visible=False),    # Hide analysis_group
-            gr.update(visible=True),     # Show model_selection_group
+            gr.update(visible=False),  # Hide analysis_group
+            gr.update(visible=True),   # Show model_selection_group
         )
 
-    # Wire the back_to_results_button to hide the analysis view and re-show model_selection_group
     back_to_results_button.click(
         fn=back_to_results,
         inputs=[],
         outputs=[analysis_group, model_selection_group]
     )
 
-    # 2. Make the "result_output" visible when "Calculate" is pressed
-    def calculate_multiple_accuracies(measurement, ground_truth_col, col2_name, col3_name, df_state):
+    def calculate_multiple_accuracies(measurement, ground_truth_col, df_state):
+        # Hard-code 'score_a' and 'score_b' as the columns to compare
+        col2_name = "score_a"
+        col3_name = "score_b"
         df = df_state.value
         if df is None:
-            return gr.update(value="No DataFrame available.", visible=True)
+            # Return two "No DataFrame" messages
+            return (
+                gr.update(value="No DataFrame available.", visible=True),
+                gr.update(value="No DataFrame available.", visible=True)
+            )
 
-        missing_columns = [col for col in [ground_truth_col, col2_name, col3_name]
-                           if col not in df.columns]
+        # Check if user-supplied ground_truth_col is valid
+        missing_columns = [col for col in [ground_truth_col, col2_name, col3_name] if col not in df.columns]
         if missing_columns:
             msg = f"Selected columns not found in DataFrame: {', '.join(missing_columns)}."
-            return gr.update(value=msg, visible=True)
+            # Return same message in both boxes
+            return (
+                gr.update(value=msg, visible=True),
+                gr.update(value=msg, visible=True)
+            )
 
-        # Prepare comparison results
-        output_texts = []
+        # Compare ground_truth_col with score_a
+        result1 = calculate_accuracy(
+            measurement, ground_truth_col, col2_name,
+            df_state, compare_to_ground_truth=True
+        )
+        text_a = f"Comparison: '{ground_truth_col}' vs. 'Judge A'\n{result1}"
 
-        # Compare ground_truth_col with col2_name
-        result1 = calculate_accuracy(measurement, ground_truth_col, col2_name,
-                                     df_state, compare_to_ground_truth=True)
-        output_texts.append(f"Comparison between '{ground_truth_col}' and '{col2_name}':\n{result1}")
+        # Compare ground_truth_col with score_b
+        result2 = calculate_accuracy(
+            measurement, ground_truth_col, col3_name,
+            df_state, compare_to_ground_truth=True
+        )
+        text_b = f"Comparison: '{ground_truth_col}' vs. 'Judge B'\n{result2}"
 
-        # Compare ground_truth_col with col3_name
-        result2 = calculate_accuracy(measurement, ground_truth_col, col3_name,
-                                     df_state, compare_to_ground_truth=True)
-        output_texts.append(f"\nComparison between '{ground_truth_col}' and '{col3_name}':\n{result2}")
+        # Return them separately, each is for a different Textbox
+        return (
+            gr.update(value=text_a, visible=True),
+            gr.update(value=text_b, visible=True)
+        )
 
-        return gr.update(value="\n".join(output_texts), visible=True)
-
+    # Now the calculate_button only expects measurement, ground_truth_col, df_state
     calculate_button.click(
         fn=calculate_multiple_accuracies,
         inputs=[
             accuracy_measurement_dropdown,
             ground_truth_dropdown,
-            compare_column1_dropdown,
-            compare_column2_dropdown,
             df_state
         ],
-        outputs=result_output
+        outputs=[judge_a_result, judge_b_result]
     )
 
-    # 3. Make the "json_output" visible only when "Download as JSON" is clicked
     def create_json_download(df_state):
         if df_state.value is None:
             return gr.update(value=None, visible=True)
         
-        # Convert DataFrame to JSON string
         json_str = df_state.value.to_json(orient='records', indent=2)
-        
-        # Create temporary file with exact name
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, 'atla_custom_eval_results.json')
-        
-        # Write the JSON to file
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(json_str)
-        
-        # Show this file in the UI for download
         return gr.update(value=file_path, visible=True)
 
     download_button.click(
@@ -168,7 +169,7 @@ def calculate_accuracy(measurement, col1, col2, df_state, compare_to_ground_trut
         results_df['extracted_winner'] = df[col1]
         results_df['truth_result'] = df[col2]
 
-    if measurement == 'Pairwise Accuracy':
+    if measurement == 'Accuracy':
         result = process_pairwise_accuracy(results_df, compare_to_ground_truth)
         output_text = (
             f"Overall Accuracy: {result['overall_accuracy']}\n"

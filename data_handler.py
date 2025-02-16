@@ -6,7 +6,7 @@ import json
 def upload_test_data(df_state):
     with gr.Group() as data_upload_group:
         file_upload = gr.File(
-            label="Upload JSON with test data incl. true labels as integers",
+            label="Upload JSON with test data incl. true labels as integers or floats",
             file_types=[".json"],
         )
         import_button = gr.Button("Import Data", visible=False)

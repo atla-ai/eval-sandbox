@@ -37,7 +37,7 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
         # Define dropdowns using model choices
         with gr.Row(visible=False) as evaluator_row:
                judge_a_dropdown = gr.Dropdown(
-                   choices=["Atla Selene"], label="Judge A", value="Atla Selene", interactive=False
+                   choices=["Selene"], label="Judge A", value="Selene", interactive=False
                )
                judge_b_dropdown = gr.Dropdown(
                    choices=model_choices, label="Judge B", value="Claude 3.5 Sonnet"
