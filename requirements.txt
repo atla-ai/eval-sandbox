@@ -5,6 +5,7 @@ python-dotenv
 openai
 anthropic
 together
+atla
 
 # Development dependencies
 black

@@ -5,7 +5,7 @@ import anthropic
 from together import Together
 import json
 import re
-import atla
+from atla import atla
 
 from dotenv import load_dotenv
 load_dotenv()
