@@ -5,7 +5,7 @@ import anthropic
 from together import Together
 import json
 import re
-from atla import atla
+from atla import Atla
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -14,7 +14,7 @@ load_dotenv()
 anthropic_client = anthropic.Anthropic()
 openai_client = OpenAI()
 together_client = Together()
-atla_client = atla.Atla()
+atla_client = Atla()
 
 SYSTEM_PROMPT = """Please act as an impartial judge and evaluate based on the user's instruction. Your output format should strictly adhere to JSON as follows: {"feedback": "<write feedback>", "result": <numerical score>}. Ensure the output is valid JSON, without additional formatting or explanations."""
 
