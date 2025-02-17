@@ -4,6 +4,39 @@ import gradio as gr
 import re
 from eval_criteria_library import EXAMPLE_METRICS
 
+SYSTEM_PROMPT = """Please act as an impartial judge and evaluate based on the user's instruction. Your output format should strictly adhere to JSON as follows: {"feedback": "<write feedback>", "result": <numerical score>}. Ensure the output is valid JSON, without additional formatting or explanations."""
+
+EVALUATION_TEMPLATE = '''You are tasked with evaluating a response based on a given instruction (which may contain an Input) and a scoring rubric. Provide a comprehensive feedback on the response quality strictly adhering to the scoring rubric, without any general evaluation. Follow this with a score, referring to the scoring rubric. Avoid generating any additional opening, closing, or explanations.
+
+Here are some rules of the evaluation:
+(1) You should prioritize evaluating whether the response satisfies the provided rubric. The basis of your score should depend exactly on the rubric. However, the response does not need to explicitly address points raised in the rubric. Rather, evaluate the response based on the criteria outlined in the rubric.
+
+Your reply should strictly follow this format:
+Your output format should strictly adhere to JSON as follows: {% raw %}{"feedback": "<write feedback>", "result": <numerical score>}{% endraw %}. Ensure the output is valid JSON, without additional formatting or explanations.
+
+Here is the data.
+
+{% if model_context is defined and model_context %}Context:
+```
+{{ model_context }}
+```
+
+{% endif %}Instruction:
+```
+{{ model_input }}
+```
+
+Response:
+```
+{{ model_output }}
+```
+
+Score Rubrics:
+{{ evaluation_criteria }}
+
+{% if expected_model_output is defined and expected_model_output %}Reference answer:
+{{ expected_model_output }}{% endif %}'''
+
 def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
     with gr.Group(visible=True) as criteria_group:
         select_eval_criteria_button = gr.Button("Select Evaluation Criteria", visible=False)
@@ -95,36 +128,7 @@ def select_evaluation_criteria(data_upload_group, df_state, prompt_state):
 
         def save_prompt(evaluation_criteria, input_col, output_col, context_col, expected_output_col):
             # Use the actual Jinja template with proper Jinja syntax and raw JSON
-            template = '''You are tasked with evaluating a response based on a given instruction (which may contain an Input) and a scoring rubric. Provide a comprehensive feedback on the response quality strictly adhering to the scoring rubric, without any general evaluation. Follow this with a score, referring to the scoring rubric. Avoid generating any additional opening, closing, or explanations.
-
-Here are some rules of the evaluation:
-(1) You should prioritize evaluating whether the response satisfies the provided rubric. The basis of your score should depend exactly on the rubric. However, the response does not need to explicitly address points raised in the rubric. Rather, evaluate the response based on the criteria outlined in the rubric.
-
-Your reply should strictly follow this format:
-Your output format should strictly adhere to JSON as follows: {% raw %}{"feedback": "<write feedback>", "result": <numerical score>}{% endraw %}. Ensure the output is valid JSON, without additional formatting or explanations.
-
-Here is the data.
-
-{% if model_context is defined and model_context %}Context:
-```
-{{ model_context }}
-```
-
-{% endif %}Instruction:
-```
-{{ model_input }}
-```
-
-Response:
-```
-{{ model_output }}
-```
-
-Score Rubrics:
-{{ evaluation_criteria }}
-
-{% if expected_model_output is defined and expected_model_output %}Reference answer:
-{{ expected_model_output }}{% endif %}'''
+            template = EVALUATION_TEMPLATE
             
             # Create mapping dictionary
             mapping_dict = {
