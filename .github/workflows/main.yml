@@ -1,0 +1,14 @@
+name: Deploy to huggingface
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: backendcloud/hugging-push@v0.2.3
+        with:
+          huggingface_repo: 'Sandbox_Test'
+          hf_token: ${{ secrets.HF_TOKEN }}
+          repo_type: 'space'
+          space_sdk: 'gradio'
