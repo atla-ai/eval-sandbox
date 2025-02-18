@@ -34,7 +34,23 @@ def upload_test_data(df_state):
     def import_data(file):
         if file is not None:
             try:
-                df_state.value = pd.json_normalize(json.load(open(file.name)))
+                loaded_json = json.load(open(file.name))
+
+                # Handle various common JSON structures
+                if isinstance(loaded_json, list):
+                    # Top-level list
+                    df = pd.json_normalize(loaded_json, sep=".")
+                elif isinstance(loaded_json, dict):
+                    # Dictionary could contain a "data" key or not
+                    if "data" in loaded_json and isinstance(loaded_json["data"], list):
+                        df = pd.json_normalize(loaded_json["data"], sep=".")
+                    else:
+                        # Flatten the top-level dictionary
+                        df = pd.json_normalize(loaded_json, sep=".")
+                else:
+                    raise ValueError("Unsupported JSON structure. Please provide a list or object.")
+
+                df_state.value = df
 
                 return {
                     df_display: gr.update(value=df_state.value, visible=True),
@@ -42,10 +58,13 @@ def upload_test_data(df_state):
                     df_state: df_state,
                     error_display: gr.update(visible=False)  # Hide previous errors
                 }
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 return {
                     df_display: gr.update(visible=False),
-                    error_display: gr.update(value="**Error:** Invalid JSON file. Please upload a valid JSON file.", visible=True),
+                    error_display: gr.update(
+                        value="**Error:** Invalid JSON file. Please upload a valid JSON file.",
+                        visible=True
+                    ),
                     import_button: gr.update(visible=True),
                     df_state: None
                 }
