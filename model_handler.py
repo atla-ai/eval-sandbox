@@ -152,8 +152,11 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
                         elif column == 'expected_model_output':
                             expected_output = str(row[column])
 
+                context['evaluation_criteria'] = evaluation_criteria
+
                 # Render the template for Judge B
                 current_prompt = template.render(**context)
+                print(f"\nDEBUG - Final Prompt sent to Model B:\n{current_prompt}\n")
                 response_a = get_atla_response(
                     "atla-selene",
                     model_input=context.get('model_input'),
