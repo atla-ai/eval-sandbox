@@ -179,10 +179,13 @@ def select_evaluators(criteria_group, df_state, prompt_state, save_prompt_button
 
                 score_b, critique_b = parse_model_response(response_b)
 
-                df_state.value.loc[index, 'score_a'] = score_a
-                df_state.value.loc[index, 'critique_a'] = critique_a
-                df_state.value.loc[index, 'score_b'] = score_b
-                df_state.value.loc[index, 'critique_b'] = critique_b
+                # Convert model name to snake case for column names
+                model_b_snake = judge_b.lower().replace(' ', '_').replace('-', '_').replace('.', '_')
+
+                df_state.value.loc[index, 'score_selene'] = score_a
+                df_state.value.loc[index, 'critique_selene'] = critique_a
+                df_state.value.loc[index, f'score_{model_b_snake}'] = score_b
+                df_state.value.loc[index, f'critique_{model_b_snake}'] = critique_b
 
             import time
             time.sleep(2)  # simulating time-consuming operations

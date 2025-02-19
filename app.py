@@ -23,13 +23,14 @@ def run_sandbox():
         vertical-align: top !important;
     }
     """) as demo:
-        gr.Markdown("# Atla Testing Sandbox")
+        gr.Markdown("# Selene Playground")
+        gr.Markdown("Try running evals with Selene and Selene-Mini in this playground! The Selene-Mini model card can be found [here](https://huggingface.co/AtlaAI/Selene-1-Mini-Llama-3.1-8B)")
         with gr.Tabs():
             # Random samples tab
             random_sample_tab()
 
             # Sandbox tab
-            with gr.TabItem("Custom Dataset"):
+            with gr.TabItem("Custom dataset"):
                 # Initialize state object to track the DataFrame
                 df_state = gr.State(value=None)
                 # Initialize state object to track the prompt

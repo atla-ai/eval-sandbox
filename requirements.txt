@@ -6,6 +6,7 @@ openai
 anthropic
 together
 atla
+transformers
 
 # Development dependencies
 black

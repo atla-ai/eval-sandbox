@@ -82,12 +82,14 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
     )
 
     def calculate_multiple_accuracies(measurement, ground_truth_col, df_state):
-        # Hard-code 'score_a' and 'score_b' as the columns to compare
-        col2_name = "score_a"
-        col3_name = "score_b"
+        # Update column names to match new format
+        col2_name = "score_selene"
+        # Get the non-selene score column (should be the other score_* column)
         df = df_state.value
+        score_columns = [col for col in df.columns if col.startswith('score_') and col != 'score_selene']
+        col3_name = score_columns[0] if score_columns else None
+        
         if df is None:
-            # Return two "No DataFrame" messages
             return (
                 gr.update(value="No DataFrame available.", visible=True),
                 gr.update(value="No DataFrame available.", visible=True)
@@ -97,27 +99,27 @@ def handle_analysis(df_state, model_selection_group, analyze_results_button):
         missing_columns = [col for col in [ground_truth_col, col2_name, col3_name] if col not in df.columns]
         if missing_columns:
             msg = f"Selected columns not found in DataFrame: {', '.join(missing_columns)}."
-            # Return same message in both boxes
             return (
                 gr.update(value=msg, visible=True),
                 gr.update(value=msg, visible=True)
             )
 
-        # Compare ground_truth_col with score_a
+        # Compare ground_truth_col with score_selene
         result1 = calculate_accuracy(
             measurement, ground_truth_col, col2_name,
             df_state, compare_to_ground_truth=True
         )
-        text_a = f"Comparison: '{ground_truth_col}' vs. 'Judge A'\n{result1}"
+        text_a = f"Comparison: '{ground_truth_col}' vs. 'Selene'\n{result1}"
 
-        # Compare ground_truth_col with score_b
+        # Compare ground_truth_col with the other model's score
         result2 = calculate_accuracy(
             measurement, ground_truth_col, col3_name,
             df_state, compare_to_ground_truth=True
         )
-        text_b = f"Comparison: '{ground_truth_col}' vs. 'Judge B'\n{result2}"
+        # Extract model name from column name for display
+        model_name = col3_name.replace('score_', '').replace('_', ' ').title()
+        text_b = f"Comparison: '{ground_truth_col}' vs. '{model_name}'\n{result2}"
 
-        # Return them separately, each is for a different Textbox
         return (
             gr.update(value=text_a, visible=True),
             gr.update(value=text_b, visible=True)
