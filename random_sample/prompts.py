@@ -88,7 +88,7 @@ ATLA_PROMPT_WITH_REFERENCE = """You are tasked with evaluating a response based 
   {eval_criteria}
 
   Reference answer:
-  {ground_truth_input}"""
+  {ground_truth}"""
 
 # Judge system prompt for non-Prometheus models
 JUDGE_SYSTEM_PROMPT = """Please act as an impartial judge and evaluate based on the user's instruction. Your output format should strictly adhere to JSON as follows: {"feedback": "<write feedback>", "result": <numerical score>}. Ensure the output is valid JSON, without additional formatting or explanations.""" 

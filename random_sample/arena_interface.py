@@ -6,14 +6,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .gen_api_answer import (
-    get_atla_response
+    get_atla_response,
+    get_selene_mini_response,
+    parse_selene_mini_response
 )
 
 from .prompts import (
     DEFAULT_EVAL_CRITERIA,
     DEFAULT_EVAL_PROMPT,
     DEFAULT_EVAL_PROMPT_EDITABLE,
-    FIXED_EVAL_SUFFIX
+    ATLA_PROMPT,
+    ATLA_PROMPT_WITH_REFERENCE
 )
 
 from .random_sample_generation import (
@@ -67,6 +70,15 @@ def create_arena_interface():
             value=DEFAULT_EVAL_PROMPT,
             visible=False
         )
+        with gr.Row():
+            # Add model selector dropdown at the top
+            model_selector = gr.Dropdown(
+                choices=["Selene", "Selene Mini"],
+                value="Selene",
+                label="Choose your Atla Model",
+                interactive=True
+            )
+
         with gr.Row():
             # Left side - Input section
             with gr.Column(scale=1):
@@ -234,36 +246,62 @@ def create_arena_interface():
         # Add a new state variable to track first game
         first_game_state = gr.State(True)  # Initialize as True
 
-        # Update the submit function to parse the evaluation criteria
+        # Update the submit function to handle both models
         def submit_and_store(
+            model_choice,
             use_reference,
             eval_criteria_text,
             human_input,
             ai_response,
-            ground_truth_input,
+            ground_truth,
         ):
-            # Build prompt data dictionary
-            prompt_data = {
-                'human_input': human_input,
-                'ai_response': ai_response,
-                'ground_truth_input': ground_truth_input if use_reference else None,
-                'eval_criteria': eval_criteria_text,
-            }
-
-            # Get response from Atla
-            response = get_atla_response(
-                model_name="AtlaAI/Selene-1-Mini-Llama-3.1-8B",
-                prompt=prompt_data,
-                max_tokens=500,
-                temperature=0.01
-            )
+            if model_choice == "Selene Mini":
+                # Prepare prompt based on reference mode
+                prompt_template = ATLA_PROMPT_WITH_REFERENCE if use_reference else ATLA_PROMPT
+                prompt = prompt_template.format(
+                    human_input=human_input,
+                    ai_response=ai_response,
+                    eval_criteria=eval_criteria_text,
+                    ground_truth=ground_truth if use_reference else ""
+                )
+                
+                print("\n=== Debug: Prompt being sent to Selene Mini ===")
+                print(prompt)
+                print("============================================\n")
+                
+                # Get and parse response
+                raw_response = get_selene_mini_response(
+                    model_name="AtlaAI/Selene-1-Mini-Llama-3.1-8B",
+                    prompt=prompt,
+                    max_tokens=500,
+                    temperature=0.01
+                )
+                response = parse_selene_mini_response(raw_response)
+            else:
+                # Selene API logic
+                prompt_data = {
+                    'human_input': human_input,
+                    'ai_response': ai_response,
+                    'ground_truth': ground_truth if use_reference else None,
+                    'eval_criteria': eval_criteria_text,
+                }
+                
+                print("\n=== Debug: Prompt data being sent to Selene API ===")
+                print(json.dumps(prompt_data, indent=2))
+                print("============================================\n")
+                
+                response = get_atla_response(
+                    model_name="AtlaAI/Selene-1-Mini-Llama-3.1-8B",
+                    prompt=prompt_data,
+                    max_tokens=500,
+                    temperature=0.01
+                )
 
             # Response now contains score and critique directly
             if isinstance(response, dict) and 'score' in response and 'critique' in response:
                 score = str(response['score'])
                 critique = response['critique']
             else:
-                # Handle error case
                 score = "Error"
                 critique = str(response)
 
@@ -274,22 +312,11 @@ def create_arena_interface():
                 gr.update(value="🎲"),
             ]
 
-        # Update the click handler to use False for is_first_game after first submission
-        def create_submit_handler():
-            first_game = True
-            
-            def handler(*args):
-                nonlocal first_game
-                result = submit_and_store(*args)
-                first_game = False  # Set to False after first submission
-                return result
-            
-            return handler
-
-        # Update the send_btn click handler
+        # Update the send_btn click handler with new input
         send_btn.click(
             fn=submit_and_store,
             inputs=[
+                model_selector,
                 use_reference_toggle,
                 eval_criteria_text,
                 human_input,
