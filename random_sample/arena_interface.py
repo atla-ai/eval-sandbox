@@ -120,7 +120,7 @@ def create_arena_interface():
 
             # Right side - Model outputs
             with gr.Column(scale=1):
-                gr.Markdown("## 👩‍⚖️ Selene-Mini Evaluation")
+                gr.Markdown("## 👩‍⚖️ Atla Evaluation")
                 with gr.Group():
                     with gr.Row():
                         score = gr.Textbox(label="Score", lines=1, interactive=False)
