@@ -24,7 +24,8 @@ def run_sandbox():
     }
     """) as demo:
         gr.Markdown("# Selene Playground")
-        gr.Markdown("Try running evals with Selene and Selene-Mini in this playground! The Selene-Mini model card can be found [here](https://huggingface.co/AtlaAI/Selene-1-Mini-Llama-3.1-8B)")
+        gr.Markdown("""Run evals with Selene and Selene-Mini in this interactive playground! 
+                    <br>Check out Selene-Mini's [model card](https://huggingface.co/AtlaAI/Selene-1-Mini-Llama-3.1-8B) or get started with the Selene API for free [here](https://www.atla-ai.com/sign-up?utm_source=huggingface&utm_medium=org_social&utm_campaign=SU_HF_atla_demo_sel1launch_).""")
         with gr.Tabs():
             # Random samples tab
             random_sample_tab()
