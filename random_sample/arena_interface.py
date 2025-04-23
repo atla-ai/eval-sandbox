@@ -6,17 +6,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .gen_api_answer import (
-    get_atla_response,
-    get_selene_mini_response,
-    parse_selene_mini_response
+    get_atla_response
 )
 
 from .prompts import (
     DEFAULT_EVAL_CRITERIA,
     DEFAULT_EVAL_PROMPT,
-    DEFAULT_EVAL_PROMPT_EDITABLE,
-    ATLA_PROMPT,
-    ATLA_PROMPT_WITH_REFERENCE
+    DEFAULT_EVAL_PROMPT_EDITABLE
 )
 
 from .random_sample_generation import (
@@ -255,62 +251,35 @@ def create_arena_interface():
             ai_response,
             ground_truth,
         ):
-            if model_choice == "Selene Mini":
-                # Prepare prompt based on reference mode
-                prompt_template = ATLA_PROMPT_WITH_REFERENCE if use_reference else ATLA_PROMPT
-                prompt = prompt_template.format(
-                    human_input=human_input,
-                    ai_response=ai_response,
-                    eval_criteria=eval_criteria_text,
-                    ground_truth=ground_truth if use_reference else ""
-                )
-                
-                print("\n=== Debug: Prompt being sent to Selene Mini ===")
-                print(prompt)
-                print("============================================\n")
-                
-                # Get and parse response
-                raw_response = get_selene_mini_response(
-                    model_name="AtlaAI/Selene-1-Mini-Llama-3.1-8B",
-                    prompt=prompt,
-                    max_tokens=500,
-                    temperature=0.01
-                )
-                response = parse_selene_mini_response(raw_response)
-            else:
-                # Selene API logic
-                prompt_data = {
-                    'human_input': human_input,
-                    'ai_response': ai_response,
-                    'ground_truth': ground_truth if use_reference else None,
-                    'eval_criteria': eval_criteria_text,
-                }
-                
-                print("\n=== Debug: Prompt data being sent to Selene API ===")
-                print(json.dumps(prompt_data, indent=2))
-                print("============================================\n")
-                
-                response = get_atla_response(
-                    model_name="AtlaAI/Selene-1-Mini-Llama-3.1-8B",
-                    prompt=prompt_data,
-                    max_tokens=500,
-                    temperature=0.01
-                )
-
-            # Response now contains score and critique directly
-            if isinstance(response, dict) and 'score' in response and 'critique' in response:
-                score = str(response['score'])
-                critique = response['critique']
-            else:
-                score = "Error"
-                critique = str(response)
-
-            return [
-                score,
-                critique,
-                gr.update(value="Regenerate evaluation", variant="secondary", interactive=True),
-                gr.update(value="🎲"),
-            ]
+            # Prepare prompt data for both models
+            prompt_data = {
+                'human_input': human_input,
+                'ai_response': ai_response,
+                'ground_truth': ground_truth if use_reference else None,
+                'eval_criteria': eval_criteria_text,
+            }
+            
+            print("\n=== Debug: Prompt data being sent to Selene API ===")
+            print(json.dumps(prompt_data, indent=2))
+            print("============================================\n")
+            
+            # Use appropriate model ID based on selection
+            model_id = "atla-selene-mini" if model_choice == "Selene Mini" else "atla-selene"
+            
+            response = get_atla_response(
+                model_name=model_id,
+                prompt=prompt_data,
+                max_tokens=500,
+                temperature=0.01
+            )
+            
+            # Format the response for display
+            score_text = f"{response['score']}/5"
+            critique_text = f"{response['critique']}"
+            
+            # Return all required values for the UI components
+            return score_text, critique_text, gr.update(value="Regenerate evaluation", variant="secondary", interactive=True), gr.update(value="🎲", variant="primary")
+    
 
         # Update the send_btn click handler with new input
         send_btn.click(
