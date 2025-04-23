@@ -1,6 +1,8 @@
 # Core dependencies
 pymongo
+google-genai==1.5.0
 gradio
+pydantic==2.10.6
 python-dotenv
 openai
 anthropic
